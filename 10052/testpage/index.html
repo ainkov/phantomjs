@@ -1,0 +1,16 @@
+<html>
+    <head>
+        <title>A test page for https://github.com/ariya/phantomjs/issues/10052</title>
+        <style>
+            a { color: blue; text-decoration: none; }
+            .link { color: blue; }
+        </style>
+    </head>
+    <body>
+        Download a binary file
+        <a name="simple_link" href="./nullbytes">using a simple link</a>
+        or
+        <a name="using_javascript" onclick="window.location = './nullbytes';">
+            using JavaScript</a>.
+    </body>
+</html>
