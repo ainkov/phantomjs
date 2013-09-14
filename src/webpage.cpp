@@ -1619,6 +1619,36 @@ void WebPage::updateLoadingProgress(int progress)
     m_loadingProgress = progress;
 }
 
+// Copied from
+// qt/src/3rdparty/webkit/Source/WebCore/platform/network/HTTPParsers.cpp
+// Ported from WTF::String to QString
+QString filenameFromHTTPContentDisposition(const QString& value)
+{
+    QStringList keyValuePairs = value.split(';');
+
+    unsigned length = keyValuePairs.size();
+    for (unsigned i = 0; i < length; i++) {
+        int valueStartPos = keyValuePairs[i].indexOf('=');
+        if (valueStartPos == -1)
+            continue;
+
+        QString key = keyValuePairs[i].left(valueStartPos).trimmed();
+
+        if (key.isEmpty() || key != "filename")
+            continue;
+
+        QString value = keyValuePairs[i].mid(valueStartPos + 1).trimmed();
+
+        // Remove quotes if there are any
+        if (value[0] == '\"')
+            value = value.mid(1, value.length() - 2);
+
+        return value;
+    }
+
+    return QString();
+}
+
 void WebPage::downloadRequested(QNetworkReply* networkReply)
 {
     QUrl downloadUrl = networkReply->url();
@@ -1631,7 +1661,9 @@ void WebPage::downloadRequested(QNetworkReply* networkReply)
         return;
 
     QVariantMap responseData;
-    responseData["filename"] = QFileInfo(downloadUrl.toString()).fileName();
+    QString contentDisposition = networkReply->header(QNetworkRequest::ContentDispositionHeader).toString();
+
+    responseData["filename"] = QFileInfo(filenameFromHTTPContentDisposition(contentDisposition)).fileName();
     responseData["size"] = size;
     responseData["contentType"] = networkReply->header(QNetworkRequest::ContentTypeHeader).toString();
 
