@@ -725,6 +725,8 @@ static QNetworkRequest::KnownHeaders parseHeaderName(const QByteArray &headerNam
             return QNetworkRequest::ContentLengthHeader;
         else if (qstricmp(headerName.constData(), "cookie") == 0)
             return QNetworkRequest::CookieHeader;
+        else if (qstricmp(headerName.constData(), "content-disposition") == 0)
+            return QNetworkRequest::ContentDispositionHeader;
         break;
 
     case 'l':
@@ -797,6 +799,9 @@ static QVariant parseHeaderValue(QNetworkRequest::KnownHeaders header, const QBy
 
     case QNetworkRequest::SetCookieHeader:
         return QVariant::fromValue(QNetworkCookie::parseCookies(value));
+
+    case QNetworkRequest::ContentDispositionHeader:
+        return QString::fromLatin1(value);
 
     default:
         Q_ASSERT(0);
