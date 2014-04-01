@@ -267,6 +267,8 @@ function decorateNewPage(opts, page) {
 
     definePageSignalHandler(page, handlers, "onFileDownloadError", "fileDownloadError");
 
+    definePageSignalHandler(page, handlers, "onFileDownloadFinished", "fileDownloadFinished");
+
     phantom.__defineErrorSignalHandler__(page, page, handlers);
 
     page.onError = phantom.defaultErrorHandler;

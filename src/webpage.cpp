@@ -1686,6 +1686,8 @@ void WebPage::downloadFinished()
 
         m_downloadingFiles.remove(reply);
 
+        emit fileDownloadFinished();
+
         // We can safely mark this QNetworkReply for deleting later since Webkit will not handle it
         reply->deleteLater();
     }
