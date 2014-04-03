@@ -1635,6 +1635,11 @@ void WebPage::downloadRequested(QNetworkReply* networkReply)
     responseData["size"] = size;
     responseData["contentType"] = networkReply->header(QNetworkRequest::ContentTypeHeader).toString();
 
+    QByteArray contentDisposition("Content-Disposition");
+    if (networkReply->hasRawHeader(contentDisposition)) {
+        responseData["contentDisposition"] = QString(networkReply->rawHeader(contentDisposition).data());
+    }
+
     QString filename = fileDownloadPrompt(downloadUrl, responseData);
 
     if (filename.isEmpty()) {
