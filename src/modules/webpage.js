@@ -474,6 +474,8 @@ function decorateNewPage(opts, page) {
 
     definePageCallbackHandler(page, handlers, "onFileDownload", "_getFileDownloadCallback");
 
+    definePageCallbackHandler(page, handlers, "onFileMD5", "_getFileMD5Callback");
+
     page.event = {};
     page.event.modifier = {
         shift:  0x02000000,

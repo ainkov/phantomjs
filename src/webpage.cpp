@@ -55,6 +55,7 @@
 #include <QDebug>
 #include <QImageWriter>
 #include <QUuid>
+#include <QCryptographicHash>
 
 #include <gifwriter.h>
 
@@ -256,6 +257,7 @@ public:
         , m_jsConfirmCallback(NULL)
         , m_jsPromptCallback(NULL)
         , m_fileDownloadCallback(NULL)
+        , m_fileMD5Callback(NULL)
     {
     }
 
@@ -305,6 +307,16 @@ public:
         return m_fileDownloadCallback;
     }
 
+    QObject *getFileMD5Callback() {
+        qDebug() << "WebpageCallbacks - getFileMD5Callback";
+
+        if (!m_fileMD5Callback) {
+            m_fileMD5Callback = new Callback(this);
+        }
+
+        return m_fileMD5Callback;
+    }
+
 public slots:
     QVariant call(const QVariantList &arguments) {
         if (m_genericCallback) {
@@ -319,6 +331,7 @@ private:
     Callback *m_jsConfirmCallback;
     Callback *m_jsPromptCallback;
     Callback *m_fileDownloadCallback;
+    Callback *m_fileMD5Callback;
 
     friend class WebPage;
 };
@@ -1332,6 +1345,15 @@ QObject *WebPage::_getFileDownloadCallback()
     return m_callbacks->getFileDownloadCallback();
 }
 
+QObject *WebPage::_getFileMD5Callback()
+{
+    if (!m_callbacks) {
+        m_callbacks = new WebpageCallbacks(this);
+    }
+
+    return m_callbacks->getFileMD5Callback();
+}
+
 void WebPage::sendEvent(const QString &type, const QVariant &arg1, const QVariant &arg2, const QString &mouseButton, const QVariant &modifierArg)
 {
     Qt::KeyboardModifiers keyboardModifiers(modifierArg.toInt());
@@ -1646,25 +1668,8 @@ void WebPage::downloadRequested(QNetworkReply* networkReply)
         qDebug() << "WebPage - downloadRequested. File download aborted (filename is empty)";
         networkReply->abort();
     } else {
-        QString downloadingFilename = QFileInfo(downloadUrl.toString()).fileName();
-        QFileInfo fileInfo(filename);
 
-        if (fileInfo.isRelative()) {
-            fileInfo.makeAbsolute();
-        }
-
-        if (fileInfo.isDir()) {
-            // check if the target directory is writable
-            if (!fileInfo.isWritable()) {
-                emit fileDownloadError("Requested path is not writable");
-                networkReply->abort();
-                return;
-            }
-
-            m_downloadingFiles[networkReply] = fileInfo.path() + downloadingFilename;
-        }
-        else
-            m_downloadingFiles[networkReply]  = fileInfo.filePath();
+        m_downloadingFiles[networkReply]  = filename;
 
         connect(networkReply, SIGNAL(finished()), this, SLOT(downloadFinished()));
     }
@@ -1676,17 +1681,45 @@ void WebPage::downloadFinished()
 
     if (reply && reply->error() == QNetworkReply::NoError && m_downloadingFiles.contains(reply)) {
         qDebug() << "WebPage - downloadFinished";
-        QFile file(m_downloadingFiles[reply]);
+
+        QFileInfo fileInfo(m_downloadingFiles[reply]);
+
+        if (fileInfo.isRelative()) {
+            fileInfo.makeAbsolute();
+        }
+
+        QFile file(fileInfo.filePath());
 
         if (!file.open(QIODevice::WriteOnly)) {
             emit fileDownloadError("Error opening output file: " + file.errorString());
         } else {
+
             qint64 bufferSize = qMin<qint64>(MIN_BUFFER_SIZE, reply->size());
             QByteArray buffer;
+
+            QCryptographicHash md5Hash(QCryptographicHash::Md5);
+
             while (!(buffer = reply->read(bufferSize)).isEmpty()) {
+                md5Hash.addData(buffer);
                 file.write(buffer);
             }
+
             file.close();
+
+            QString md5HashString = QString(md5Hash.result().toHex());
+            qDebug() << md5HashString;
+
+            // If we have provided a md5 sum for this file and it's the same -> remove the file
+            if (m_callbacks->m_fileMD5Callback) {
+                QVariant res = m_callbacks->m_fileMD5Callback->call(QVariantList() << md5HashString);
+                if (!res.isNull() && res.canConvert<int>()) {
+                    if (res.toInt() == 1) {
+                        qDebug() << "Removing file due to same hashsum";
+                        file.remove();
+                    }
+                }
+            }
+
         }
 
         m_downloadingFiles.remove(reply);
