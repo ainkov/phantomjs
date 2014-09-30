@@ -1646,6 +1646,11 @@ void WebPage::downloadRequested(QNetworkReply* networkReply)
     QUrl downloadUrl = networkReply->url();
     qDebug() << "WebPage - downloadRequested:" << downloadUrl;
 
+    if (networkReply->error() != QNetworkReply::NoError) {
+        qDebug() << "WebPage - reply ERROR";
+        return;
+    }
+
     QVariant header = networkReply->header(QNetworkRequest::ContentLengthHeader);
     bool ok;
     int size = header.toInt(&ok);
