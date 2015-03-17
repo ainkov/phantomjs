@@ -329,6 +329,7 @@ void NetworkAccessManager::handleStarted()
     data["time"] = QDateTime::currentDateTime();
 
     emit resourceReceived(data);
+    emit downloadRequested(reply);
 }
 
 void NetworkAccessManager::handleFinished(QNetworkReply *reply)

@@ -420,6 +420,8 @@ WebPage::WebPage(QObject *parent, const QUrl &baseUrl)
     connect(m_networkAccessManager, SIGNAL(resourceTimeout(QVariant)),
             SIGNAL(resourceTimeout(QVariant)));
 
+    connect(m_networkAccessManager, SIGNAL(downloadRequested(QNetworkReply*)), this, SLOT(downloadRequested(QNetworkReply*)));
+
     m_customWebPage->setViewportSize(QSize(400, 300));
 }
 
@@ -1676,6 +1678,8 @@ void WebPage::downloadRequested(QNetworkReply* networkReply)
 
         m_downloadingFiles[networkReply]  = filename;
 
+        disconnect(networkReply, SIGNAL(finished()), 0, 0);
+        disconnect(networkReply, SIGNAL(readyRead()), 0, 0);
         connect(networkReply, SIGNAL(finished()), this, SLOT(downloadFinished()));
     }
 }
@@ -1732,6 +1736,7 @@ void WebPage::downloadFinished()
         emit fileDownloadFinished();
 
         // We can safely mark this QNetworkReply for deleting later since Webkit will not handle it
+        reply->abort();
         reply->deleteLater();
     }
 }
