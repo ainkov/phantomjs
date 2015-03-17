@@ -1673,7 +1673,8 @@ void WebPage::downloadRequested(QNetworkReply* networkReply)
 
     if (filename.isEmpty()) {
         qDebug() << "WebPage - downloadRequested. File download aborted (filename is empty)";
-        networkReply->abort();
+        return;
+        //networkReply->abort();
     } else {
 
         m_downloadingFiles[networkReply]  = filename;
@@ -1736,6 +1737,7 @@ void WebPage::downloadFinished()
         emit fileDownloadFinished();
 
         // We can safely mark this QNetworkReply for deleting later since Webkit will not handle it
+        this->stop();
         reply->abort();
         reply->deleteLater();
     }
